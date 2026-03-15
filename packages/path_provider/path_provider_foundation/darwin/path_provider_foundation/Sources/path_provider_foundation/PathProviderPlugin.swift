@@ -4,7 +4,7 @@
 
 import Foundation
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
   import Flutter
 #elseif os(macOS)
   import FlutterMacOS
@@ -14,7 +14,7 @@ public class PathProviderPlugin: NSObject, FlutterPlugin, PathProviderApi {
   public static func register(with registrar: FlutterPluginRegistrar) {
     let instance = PathProviderPlugin()
     // Workaround for https://github.com/flutter/flutter/issues/118103.
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
       let messenger = registrar.messenger()
     #else
       let messenger = registrar.messenger
