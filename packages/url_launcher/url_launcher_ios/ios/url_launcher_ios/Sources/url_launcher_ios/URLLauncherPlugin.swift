@@ -13,7 +13,9 @@ public final class URLLauncherPlugin: NSObject, FlutterPlugin, UrlLauncherApi {
     registrar.publish(plugin)
   }
 
-  private var currentSession: URLLaunchSession?
+  #if os(iOS)
+    private var currentSession: URLLaunchSession?
+  #endif
   private let launcher: Launcher
 
   private var topViewController: UIViewController? {
@@ -27,11 +29,15 @@ public final class URLLauncherPlugin: NSObject, FlutterPlugin, UrlLauncherApi {
   }
 
   func canLaunchUrl(url: String) -> LaunchResult {
-    guard let url = URL(string: url) else {
-      return .invalidUrl
-    }
-    let canOpen = launcher.canOpenURL(url)
-    return canOpen ? .success : .failure
+    #if os(iOS)
+      guard let url = URL(string: url) else {
+        return .invalidUrl
+      }
+      let canOpen = launcher.canOpenURL(url)
+      return canOpen ? .success : .failure
+    #else
+      return .failure
+    #endif
   }
 
   func launchUrl(
@@ -39,36 +45,44 @@ public final class URLLauncherPlugin: NSObject, FlutterPlugin, UrlLauncherApi {
     universalLinksOnly: Bool,
     completion: @escaping (Result<LaunchResult, Error>) -> Void
   ) {
-    guard let url = URL(string: url) else {
-      completion(.success(.invalidUrl))
-      return
-    }
-    let options = [UIApplication.OpenExternalURLOptionsKey.universalLinksOnly: universalLinksOnly]
-    launcher.open(url, options: options) { result in
-      completion(.success(result ? .success : .failure))
-    }
+    #if os(iOS)
+      guard let url = URL(string: url) else {
+        completion(.success(.invalidUrl))
+        return
+      }
+      let options = [UIApplication.OpenExternalURLOptionsKey.universalLinksOnly: universalLinksOnly]
+      launcher.open(url, options: options) { result in
+        completion(.success(result ? .success : .failure))
+      }
+    #else
+      completion(.success(.failure))
+    #endif
   }
 
   func openUrlInSafariViewController(
     url: String,
     completion: @escaping (Result<InAppLoadResult, Error>) -> Void
   ) {
-    guard let url = URL(string: url) else {
-      completion(.success(.invalidUrl))
-      return
-    }
+    #if os(iOS)
+      guard let url = URL(string: url) else {
+        completion(.success(.invalidUrl))
+        return
+      }
 
-    let session = URLLaunchSession(url: url, completion: completion)
-    currentSession = session
+      let session = URLLaunchSession(url: url, completion: completion)
+      currentSession = session
 
-    session.didFinish = { [weak self] in
-      self?.currentSession = nil
-    }
-    topViewController?.present(session.safariViewController, animated: true, completion: nil)
+      session.didFinish = { [weak self] in
+        self?.currentSession = nil
+      }
+      topViewController?.present(session.safariViewController, animated: true, completion: nil)
+    #endif
   }
 
   func closeSafariViewController() {
-    currentSession?.close()
+    #if os(iOS)
+      currentSession?.close()
+    #endif
   }
 }
 
